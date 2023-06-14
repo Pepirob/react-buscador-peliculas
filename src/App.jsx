@@ -1,11 +1,23 @@
+import { useCallback, useState } from "react";
 import "./App.css";
 import Movies from "./components/movies";
 import { useMovies } from "./hooks/useMovies";
 import { useSearch } from "./hooks/useSearch";
+import debounce from "just-debounce-it";
 
 function App() {
-  const { movies } = useMovies();
+  const [sort, setSort] = useState(false);
+
   const { search, setSearch, error } = useSearch();
+  const { movies, loading, getMovies } = useMovies({ search, sort });
+
+  const debouncedGetMovies = useCallback(
+    debounce((search) => {
+      console.log("search", search);
+      getMovies({ search });
+    }, 500),
+    [getMovies]
+  );
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -17,11 +29,17 @@ function App() {
     //   new window.FormData(event.target)
     // );
     // console.log(query, otro);
-    console.log({ search });
+    getMovies({ search });
   };
 
   const handleChange = (event) => {
-    setSearch(event.target.value);
+    const newSearch = event.target.value;
+    setSearch(newSearch);
+    debouncedGetMovies(newSearch);
+  };
+
+  const handleSort = () => {
+    setSort(!sort);
   };
 
   return (
@@ -35,6 +53,7 @@ function App() {
             value={search}
             placeholder="Avengers, Star Wars, Matrix"
           />
+          <input type="checkbox" onChange={handleSort} checked={sort} />
           <button type="submit">Buscar</button>
         </form>
         {error && (
@@ -44,9 +63,7 @@ function App() {
         )}
       </header>
 
-      <main>
-        <Movies movies={movies} />
-      </main>
+      <main>{loading ? <p>Cargando...</p> : <Movies movies={movies} />}</main>
     </div>
   );
 }
